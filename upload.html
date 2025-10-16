@@ -1,14 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload Files</title>
 </head>
 <body>
   <h2>Upload Photo / Video / APK</h2>
   <input type="file" id="fileInput"><br><br>
   <button id="uploadBtn">Upload</button>
+  <button id="logoutBtn">Logout</button>
 
-  <script type="module" src="app.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC_7Vb0LpGSrf9jVoRNN4w9zAZhw4H231o",
+      authDomain: "mymediaapp-ed022.firebaseapp.com",
+      projectId: "mymediaapp-ed022",
+      storageBucket: "mymediaapp-ed022.appspot.com",
+      messagingSenderId: "895163131947",
+      appId: "1:895163131947:web:ea4f0c621849163851626e",
+      measurementId: "G-V5PCQQM5B3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    // ---------- Check if user is logged in ----------
+    onAuthStateChanged(auth, user => {
+      if (!user) {
+        alert("You must be logged in to upload files!");
+        window.location.href = "index.html";
+      }
+    });
+
+    // ---------- Upload Files ----------
+    document.getElementById("uploadBtn").addEventListener("click", async () => {
+      const file = document.getElementById("fileInput").files[0];
+      if (!file) return alert("Select a file!");
+
+      try {
+        const storageRef = ref(storage, "uploads/" + file.name);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+
+        await addDoc(collection(db, "uploads"), {
+          name: file.name,
+          type: file.type,
+          url: url,
+          uploadedAt: new Date()
+        });
+
+        alert("✅ File uploaded successfully!");
+      } catch (err) {
+        alert("❌ Error: " + err.message);
+      }
+    });
+
+    // ---------- Logout ----------
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await signOut(auth);
+      alert("Logged out!");
+      window.location.href = "index.html";
+    });
+  </script>
 </body>
 </html>
